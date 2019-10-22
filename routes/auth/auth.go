@@ -1,0 +1,323 @@
+// Copyright 2019 Cuttle.ai. All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+
+//Package auth contains the handlers required for authentication purposes
+package auth
+
+import (
+	"context"
+	"net/http"
+	"time"
+
+	"github.com/cuttle-ai/auth-service/config"
+	"github.com/cuttle-ai/auth-service/oauth"
+	"github.com/cuttle-ai/auth-service/oauth/google"
+	"github.com/cuttle-ai/auth-service/routes"
+	"github.com/cuttle-ai/auth-service/routes/response"
+	"golang.org/x/oauth2"
+)
+
+//Index page will ask the user to login if not logged in
+//If logged in will redirect to the brain frontend
+func Index(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+	/*
+	 *	We will first get the user model from the session
+	 * 	Then we will get the updated info about the user from the auth agent.
+	 *	If we have a valid info we will get the old info related to the user if exists in the database
+	 *	If the old info is not in the db we will create one else update the info with the new one except update
+	 *	We will also update the profile in the session
+	 */
+	var i *config.UserInfo
+
+	//getting the user model
+	appCtx := ctx.Value(routes.AppContextKey).(*config.AppContext)
+	agent := getAgent(appCtx.Session.User)
+	info, err := getUserInfo(appCtx)
+	if err != nil {
+		//error while getting the user info from the auth agent
+		appCtx.Log.Error("Error while fetching the user info from oauth agent", agent.Name())
+		appCtx.Log.Error(err.Error())
+		response.WriteErrorTemplate(appCtx, w, indexErrorPage(appCtx), response.Error{Err: "We are facing a technical difficulty in fetching the user info from your oauth agent"}, http.StatusInternalServerError)
+		return
+	}
+
+	//if the info is nil, we know that the session is empty
+	if info == nil {
+		response.WriteErrorTemplate(appCtx, w, indexErrorPage(appCtx), map[string]string{
+			"Google Login": google.Config.AuthCodeURL("state", oauth2.AccessTypeOffline),
+		}, http.StatusForbidden)
+		return
+	}
+
+	//since we have a valid info, we will get the info from db
+	//if the info is empty, we have to update the db with new info
+	//if info is not empty, except the registered info we will update the existing info in db
+	i = (*info).Get(*appCtx)
+	if i == nil {
+		(*info).Insert(*appCtx)
+	} else {
+		info.Registered = i.Registered
+		(*info).Update(*appCtx)
+	}
+
+	//we will update the profile info in the session
+	appCtx.Session.User.Email = info.Email
+	go routes.SendRequest(routes.AppContextRequestChan, routes.AppContextRequest{
+		Session: appCtx.Session,
+		Type:    routes.SetSession,
+	})
+
+	//return the response
+	response.WriteTemplate(appCtx, w, indexPage(appCtx), info)
+}
+
+func getUserInfo(appCtx *config.AppContext) (*config.UserInfo, error) {
+
+	//getting the user model
+	if appCtx.Session.User == nil || len(appCtx.Session.User.AccessToken) == 0 {
+		return nil, nil
+	}
+	agent := getAgent(appCtx.Session.User)
+
+	//getting the updated user info from the auth agent
+	info, err := oauth.Info(oauth2.NoContext, appCtx, agent)
+	if err != nil {
+		//error while getting the user info from the auth agent
+		return nil, err
+	}
+
+	return info, nil
+}
+
+//Urls will return the 3party auth URLs
+func Urls(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+	appCtx := ctx.Value(routes.AppContextKey).(*config.AppContext)
+	response.Write(appCtx, w, map[string]string{
+		"Google": google.Config.AuthCodeURL("state", oauth2.AccessTypeOffline),
+	})
+}
+
+//GoogleAuth is the callback url for the Google OAuth
+func GoogleAuth(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+	/*
+	 * We will get the google auth code from the request
+	 * Will get the token from the google auth exchange
+	 * We will initiate the user session and save the session
+	 * We will get user info from the auth agent
+	 * We will also info the user logged info info to all the applications
+	 * Then will redirect to the index page
+	 */
+	//we will get the code from the request
+	code := r.URL.Query().Get("code")
+	appCtx := ctx.Value(routes.AppContextKey).(*config.AppContext)
+
+	//we will get the token from the google exchange
+	tok, err := google.Config.Exchange(oauth2.NoContext, code)
+	if err != nil {
+		//error while getting the token from the google auth exchange
+		appCtx.Log.Error("Error while getting the token for the code", code)
+		appCtx.Log.Error(err.Error())
+		response.WriteErrorTemplate(appCtx, w, indexErrorPage(appCtx), map[string]string{
+			"Google Login": google.Config.AuthCodeURL("state", oauth2.AccessTypeOffline),
+		}, http.StatusForbidden)
+		return
+	}
+
+	//we will set the user
+	user := &config.User{}
+	user.AccessToken = tok.AccessToken
+	user.AuthAgent = oauth.GOOGLE
+	appCtx.Session.User = user
+
+	//getting the user info from the auth agent
+	agent := getAgent(appCtx.Session.User)
+	info, err := getUserInfo(appCtx)
+	if err != nil {
+		//error while getting the user info from the auth agent
+		appCtx.Log.Error("Error while fetching the user info from oauth agent", agent.Name())
+		appCtx.Log.Error(err.Error())
+		response.WriteErrorTemplate(appCtx, w, indexErrorPage(appCtx), response.Error{Err: "We are facing a technical difficulty in fetching the user info from your oauth agent"}, http.StatusInternalServerError)
+		return
+	}
+
+	//if the info is nil, we know that the session is empty
+	if info == nil {
+		response.WriteErrorTemplate(appCtx, w, indexErrorPage(appCtx), map[string]string{
+			"Google Login": google.Config.AuthCodeURL("state", oauth2.AccessTypeOffline),
+		}, http.StatusForbidden)
+		return
+	}
+
+	//will save the session
+	appCtx.Session.Authenticated = true
+	appCtx.Session.User.Email = info.Email
+	go routes.SendRequest(routes.AppContextRequestChan, routes.AppContextRequest{
+		Session: appCtx.Session,
+		Type:    routes.SetSession,
+	})
+
+	//informing the user logged in info to all the applications
+	appCtx.Session.User.InformAuth(*appCtx, true)
+	http.SetCookie(w, &http.Cookie{
+		Name:    routes.AuthHeaderKey,
+		Value:   appCtx.Session.ID,
+		Expires: time.Now().AddDate(0, 0, 1),
+		Domain:  r.URL.Hostname(),
+		Path:    "/",
+	})
+
+	//will rediect to the index page
+	response.WriteTemplate(appCtx, w, indexRedirectPage(appCtx), "/")
+}
+
+//Register registers the user with the platform.
+//One can register only if he agrees the terms and conditions
+//while subscribing to the newsletter is optional
+func Register(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+	/*
+	 * First we will get the user session
+	 * If the session doesn't exist we will give session expired message
+	 * Then check whether the user has agreed to the terms and conditions of the application
+	 * Will parse the subscribe parameter
+	 * If yes we will update the profile information
+	 */
+	//getting the user session
+	appCtx := ctx.Value(routes.AppContextKey).(*config.AppContext)
+
+	//session expired if no session
+	if !appCtx.Session.Authenticated || appCtx.Session.User == nil {
+		appCtx.Log.Error("User session expired for while registering by accepting the terms and conditions")
+		response.WriteError(appCtx, w, response.Error{Err: response.ErrorCodes[response.ErrorCodeSessionExpired]}, http.StatusForbidden)
+		return
+	}
+
+	//checking whether the user has agreed to the terms and conditions
+	if r.FormValue("agreed") != "true" {
+		appCtx.Log.Error("User hasn't agreed to the terms and conditions")
+		response.WriteError(appCtx, w, response.Error{Err: "Please agree to our terms and condition"}, http.StatusExpectationFailed)
+		return
+	}
+
+	//form validation for subscribe to newletter
+	unPSubs := r.FormValue("subscribe")
+	if unPSubs != "true" && unPSubs != "false" {
+		appCtx.Log.Error("invalid form value provided. Was expecting true or false. Got ", unPSubs)
+		response.WriteError(appCtx, w, response.Error{Err: response.ErrorCodes[response.ErrorCodeInvalidParams] + " subscribe. Expecting true or false"}, http.StatusUnprocessableEntity)
+		return
+	}
+	subscribed := false
+	if unPSubs == "true" {
+		subscribed = true
+	}
+
+	//updating the profile info
+	pro := config.UserInfo{Email: appCtx.Session.User.Email}
+	pro = *(pro.Get(*appCtx))
+	pro.Registered = true
+	pro.Subscribed = subscribed
+	pro.Update(*appCtx)
+
+	//sending success message
+	response.Write(appCtx, w, "Successfully registered the user")
+}
+
+//Session returns the session information of the user
+func Session(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+	appCtx := ctx.Value(routes.AppContextKey).(*config.AppContext)
+	response.Write(appCtx, w, appCtx.Session)
+}
+
+//Profile returns the profile information of the user
+func Profile(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+	appCtx := ctx.Value(routes.AppContextKey).(*config.AppContext)
+	u := &config.UserInfo{}
+	if appCtx.Session.User != nil {
+		u.Email = appCtx.Session.User.Email
+		u = u.Get(*appCtx)
+	}
+	response.Write(appCtx, w, u)
+}
+
+//Logout logs a user out of the platform
+func Logout(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+	/*
+	 * We will inform all the services that the user has logged out
+	 * We will empty the session
+	 * Then saves the session
+	 */
+	appCtx := ctx.Value(routes.AppContextKey).(*config.AppContext)
+
+	//inform all the services that the user has logged out
+	go appCtx.Session.User.InformAuth(*appCtx, false)
+
+	//We will delete the user model from the session
+	appCtx.Session.Authenticated = false
+	appCtx.Session.User = nil
+
+	//will save the session
+	go routes.SendRequest(routes.AppContextRequestChan, routes.AppContextRequest{
+		Session: appCtx.Session,
+		Type:    routes.SetSession,
+	})
+	http.SetCookie(w, &http.Cookie{
+		Name:    routes.AuthHeaderKey,
+		Expires: time.Now(),
+		Domain:  r.URL.Hostname(),
+		Path:    "/",
+	})
+
+	//send the ok response
+	response.Write(appCtx, w, "you have sucessfully logged out of the system")
+}
+
+func init() {
+	routes.AddRoutes(
+		routes.Route{
+			Version:     "v1",
+			Pattern:     "/",
+			HandlerFunc: Index,
+		},
+		routes.Route{
+			Version:     "v1",
+			Pattern:     "/auth/urls",
+			HandlerFunc: Urls,
+		},
+		routes.Route{
+			Version:     "v1",
+			Pattern:     "/auth/google",
+			HandlerFunc: GoogleAuth,
+		},
+		routes.Route{
+			Version:     "v1",
+			Pattern:     "/register",
+			HandlerFunc: Register,
+		},
+		routes.Route{
+			Version:     "v1",
+			Pattern:     "/session",
+			HandlerFunc: Session,
+		},
+		routes.Route{
+			Version:     "v1",
+			Pattern:     "/profile",
+			HandlerFunc: Profile,
+		},
+		routes.Route{
+			Version:     "v1",
+			Pattern:     "/logout",
+			HandlerFunc: Logout,
+		},
+	)
+}
+
+func getAgent(u *config.User) oauth.Agent {
+	if u == nil {
+		return nil
+	}
+	switch u.AuthAgent {
+	case oauth.GOOGLE:
+		return &google.Agent{}
+	}
+	return nil
+}

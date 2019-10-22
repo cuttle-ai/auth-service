@@ -20,9 +20,9 @@ go run main.go
 
 The environment varibals are loaded from vault. So if the following env are configured and the rest can be configured inside the vault.
 
-*CUTTLE_AI_CONFIG_VAULT_ADDRESS* - Address at which vault is available. Eg. https://vault.cuttle.ai
-*CUTTLE_AI_CONFIG_VAULT_TOKEN* - Vault authentication token
-*CUTTLE_AI_CONFIG_VAULT_DEFAULT_PATH* - Path at which vault screts are stored. Eg. cuttle-ai-development
+* **CUTTLE_AI_CONFIG_VAULT_ADDRESS** - Address at which vault is available. Eg. https://vault.cuttle.ai 
+* **CUTTLE_AI_CONFIG_VAULT_TOKEN** - Vault authentication token
+* **CUTTLE_AI_CONFIG_VAULT_DEFAULT_PATH** - Path at which vault screts are stored. Eg. cuttle-ai-development
 
 | Enivironment Variable                 | Description                                                                                     |
 | ------------------------------------- | ----------------------------------------------------------------------------------------------- |

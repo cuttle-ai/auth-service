@@ -19,60 +19,6 @@ import (
 	"golang.org/x/oauth2"
 )
 
-//Index page will ask the user to login if not logged in
-//If logged in will redirect to the brain frontend
-func Index(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	/*
-	 *	We will first get the user model from the session
-	 * 	Then we will get the updated info about the user from the auth agent.
-	 *	If we have a valid info we will get the old info related to the user if exists in the database
-	 *	If the old info is not in the db we will create one else update the info with the new one except update
-	 *	We will also update the profile in the session
-	 */
-	var i *config.UserInfo
-
-	//getting the user model
-	appCtx := ctx.Value(routes.AppContextKey).(*config.AppContext)
-	agent := getAgent(appCtx.Session.User)
-	info, err := getUserInfo(appCtx)
-	if err != nil {
-		//error while getting the user info from the auth agent
-		appCtx.Log.Error("Error while fetching the user info from oauth agent", agent.Name())
-		appCtx.Log.Error(err.Error())
-		response.WriteErrorTemplate(appCtx, w, indexErrorPage(appCtx), response.Error{Err: "We are facing a technical difficulty in fetching the user info from your oauth agent"}, http.StatusInternalServerError)
-		return
-	}
-
-	//if the info is nil, we know that the session is empty
-	if info == nil {
-		response.WriteErrorTemplate(appCtx, w, indexErrorPage(appCtx), map[string]string{
-			"Google Login": google.Config.AuthCodeURL("state", oauth2.AccessTypeOffline),
-		}, http.StatusForbidden)
-		return
-	}
-
-	//since we have a valid info, we will get the info from db
-	//if the info is empty, we have to update the db with new info
-	//if info is not empty, except the registered info we will update the existing info in db
-	i = (*info).Get(*appCtx)
-	if i == nil {
-		(*info).Insert(*appCtx)
-	} else {
-		info.Registered = i.Registered
-		(*info).Update(*appCtx)
-	}
-
-	//we will update the profile info in the session
-	appCtx.Session.User.Email = info.Email
-	go routes.SendRequest(routes.AppContextRequestChan, routes.AppContextRequest{
-		Session: appCtx.Session,
-		Type:    routes.SetSession,
-	})
-
-	//return the response
-	response.WriteTemplate(appCtx, w, indexPage(appCtx), info)
-}
-
 func getUserInfo(appCtx *config.AppContext) (*config.UserInfo, error) {
 
 	//getting the user model
@@ -163,6 +109,17 @@ func GoogleAuth(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 		Domain:  strings.Split(config.FrontendURL, ":")[0],
 		Path:    "/",
 	})
+
+	//since we have a valid info, we will get the info from db
+	//if the info is empty, we have to update the db with new info
+	//if info is not empty, except the registered info we will update the existing info in db
+	i := (*info).Get(*appCtx)
+	if i == nil {
+		(*info).Insert(*appCtx)
+	} else {
+		info.Registered = i.Registered
+		(*info).Update(*appCtx)
+	}
 
 	//will rediect to the index page
 	response.Write(appCtx, w, appCtx.Session)
@@ -270,11 +227,6 @@ func Logout(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 
 func init() {
 	routes.AddRoutes(
-		routes.Route{
-			Version:     "v1",
-			Pattern:     "/",
-			HandlerFunc: Index,
-		},
 		routes.Route{
 			Version:     "v1",
 			Pattern:     "/auth/urls",

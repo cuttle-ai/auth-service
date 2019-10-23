@@ -86,7 +86,7 @@ func init() {
 	 */
 	rootAppContext = &AppContext{}
 
-	log.Println("Going to connect wioth Database")
+	log.Println("Going to connect with Database")
 	err := rootAppContext.ConnectToDB()
 	if err != nil {
 		log.Fatal("Error while creating the root app context. Connecting to DB failed. ", err)

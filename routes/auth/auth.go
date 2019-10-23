@@ -8,6 +8,7 @@ package auth
 import (
 	"context"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/cuttle-ai/auth-service/config"
@@ -118,9 +119,7 @@ func GoogleAuth(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 		//error while getting the token from the google auth exchange
 		appCtx.Log.Error("Error while getting the token for the code", code)
 		appCtx.Log.Error(err.Error())
-		response.WriteErrorTemplate(appCtx, w, indexErrorPage(appCtx), map[string]string{
-			"Google Login": google.Config.AuthCodeURL("state", oauth2.AccessTypeOffline),
-		}, http.StatusForbidden)
+		response.WriteError(appCtx, w, response.Error{Err: "Sorry couldn't complete your oauth"}, http.StatusForbidden)
 		return
 	}
 
@@ -137,15 +136,13 @@ func GoogleAuth(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 		//error while getting the user info from the auth agent
 		appCtx.Log.Error("Error while fetching the user info from oauth agent", agent.Name())
 		appCtx.Log.Error(err.Error())
-		response.WriteErrorTemplate(appCtx, w, indexErrorPage(appCtx), response.Error{Err: "We are facing a technical difficulty in fetching the user info from your oauth agent"}, http.StatusInternalServerError)
+		response.WriteError(appCtx, w, response.Error{Err: "Sorry couldn't complete your oauth"}, http.StatusForbidden)
 		return
 	}
 
 	//if the info is nil, we know that the session is empty
 	if info == nil {
-		response.WriteErrorTemplate(appCtx, w, indexErrorPage(appCtx), map[string]string{
-			"Google Login": google.Config.AuthCodeURL("state", oauth2.AccessTypeOffline),
-		}, http.StatusForbidden)
+		response.WriteError(appCtx, w, response.Error{Err: "Sorry couldn't complete your oauth"}, http.StatusForbidden)
 		return
 	}
 
@@ -163,12 +160,12 @@ func GoogleAuth(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 		Name:    routes.AuthHeaderKey,
 		Value:   appCtx.Session.ID,
 		Expires: time.Now().AddDate(0, 0, 1),
-		Domain:  r.URL.Hostname(),
+		Domain:  strings.Split(config.FrontendURL, ":")[0],
 		Path:    "/",
 	})
 
 	//will rediect to the index page
-	response.WriteTemplate(appCtx, w, indexRedirectPage(appCtx), "/")
+	response.Write(appCtx, w, appCtx.Session)
 }
 
 //Register registers the user with the platform.
@@ -193,7 +190,7 @@ func Register(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	}
 
 	//checking whether the user has agreed to the terms and conditions
-	if r.FormValue("agreed") != "true" {
+	if r.FormValue("agree") != "true" {
 		appCtx.Log.Error("User hasn't agreed to the terms and conditions")
 		response.WriteError(appCtx, w, response.Error{Err: "Please agree to our terms and condition"}, http.StatusExpectationFailed)
 		return
@@ -263,7 +260,7 @@ func Logout(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &http.Cookie{
 		Name:    routes.AuthHeaderKey,
 		Expires: time.Now(),
-		Domain:  r.URL.Hostname(),
+		Domain:  strings.Split(config.FrontendURL, ":")[0],
 		Path:    "/",
 	})
 
@@ -290,22 +287,22 @@ func init() {
 		},
 		routes.Route{
 			Version:     "v1",
-			Pattern:     "/register",
+			Pattern:     "/auth/register",
 			HandlerFunc: Register,
 		},
 		routes.Route{
 			Version:     "v1",
-			Pattern:     "/session",
+			Pattern:     "/auth/session",
 			HandlerFunc: Session,
 		},
 		routes.Route{
 			Version:     "v1",
-			Pattern:     "/profile",
+			Pattern:     "/auth/profile",
 			HandlerFunc: Profile,
 		},
 		routes.Route{
 			Version:     "v1",
-			Pattern:     "/logout",
+			Pattern:     "/auth/logout",
 			HandlerFunc: Logout,
 		},
 	)

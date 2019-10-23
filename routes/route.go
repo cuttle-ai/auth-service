@@ -7,6 +7,7 @@ package routes
 import (
 	"context"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/cuttle-ai/auth-service/log"
@@ -57,6 +58,7 @@ func (r Route) Register(s *http.ServeMux) {
 //ServeHTTP implements HandlerFunc of http package. It makes use of the context of request
 func (r Route) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	/*
+	 * We will set the cors
 	 * Will get the context
 	 * Will parse the form
 	 * Will get the auth token from the request header
@@ -66,6 +68,14 @@ func (r Route) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	 * Execute request handler func
 	 * After execution return the app context
 	 */
+	//setting the cors
+	res.Header().Set("Access-Control-Allow-Origin", config.FrontendURL)
+	res.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+	res.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+	if req.Method == "OPTIONS" {
+		return
+	}
+
 	//getting the context
 	ctx := req.Context()
 
@@ -111,11 +121,11 @@ func (r Route) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	newCtx := context.WithValue(ctx, AppContextKey, resCtx.AppContext)
 	if resCtx.AppContext.Session.ID != auth {
 		cookie.Expires = time.Now()
-		cookie.Domain = req.URL.Hostname()
+		cookie.Domain = strings.Split(config.FrontendURL, ":")[0]
 		cookie.Path = "/"
+		cookie.Value = resCtx.Session.ID
 		http.SetCookie(res, cookie)
 	}
-	resCtx.AppContext.Log.Info(resCtx.AppContext.Session.ID, auth)
 
 	resCtx.AppContext.Log.Info("Request URL ", req.URL.RequestURI())
 

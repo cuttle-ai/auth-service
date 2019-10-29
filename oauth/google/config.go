@@ -38,7 +38,7 @@ var UserInfoMap oauth.UserInfoMap
 var UserInfoURL string
 
 //UserInfoTimeout is the timeout for the fetching the user info from google auth agent
-var UserInfoTimeout = time.Duration(200 * time.Millisecond)
+var UserInfoTimeout = time.Duration(10000 * time.Millisecond)
 
 const (
 	//RedirectURLKey is the key storing for the google oauth redirect url

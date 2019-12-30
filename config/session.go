@@ -15,3 +15,6 @@ type Session struct {
 	//User with which the app context is associated with
 	User *User
 }
+
+//AuthHeaderKey is the key to be used to store the auth token in the header
+const AuthHeaderKey = "auth-token"

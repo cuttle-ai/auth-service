@@ -40,9 +40,6 @@ type key string
 //AppContextKey is the key with which the application is saved in the request context
 const AppContextKey key = "app-context"
 
-//AuthHeaderKey is the key to be used to store the auth token in the header
-const AuthHeaderKey = "auth-token"
-
 //Register registers the route with the default http handler func
 func (r Route) Register(s *http.ServeMux) {
 	/*
@@ -91,10 +88,10 @@ func (r Route) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	}
 
 	//getting the auth token from the header
-	cookie, cErr := req.Cookie(AuthHeaderKey)
+	cookie, cErr := req.Cookie(config.AuthHeaderKey)
 	if cErr != nil {
 		log.Warn("Auth cookie not found")
-		cookie = &http.Cookie{Name: AuthHeaderKey}
+		cookie = &http.Cookie{Name: config.AuthHeaderKey}
 	}
 	auth := cookie.Value
 

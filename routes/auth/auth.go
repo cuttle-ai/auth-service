@@ -103,7 +103,7 @@ func GoogleAuth(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	//informing the user logged in info to all the applications
 	appCtx.Session.User.InformAuth(*appCtx, true)
 	http.SetCookie(w, &http.Cookie{
-		Name:    routes.AuthHeaderKey,
+		Name:    config.AuthHeaderKey,
 		Value:   appCtx.Session.ID,
 		Expires: time.Now().AddDate(0, 0, 1),
 		Domain:  strings.Split(config.FrontendURL, ":")[0],
@@ -215,7 +215,7 @@ func Logout(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 		Type:    routes.SetSession,
 	})
 	http.SetCookie(w, &http.Cookie{
-		Name:    routes.AuthHeaderKey,
+		Name:    config.AuthHeaderKey,
 		Expires: time.Now(),
 		Domain:  strings.Split(config.FrontendURL, ":")[0],
 		Path:    "/",

@@ -56,10 +56,10 @@ type AuthenticatedUsers struct {
 //GetAutenticatedUser will return the autenticated user for a given accesstoken
 //It will return the user if existing. ok parameter will be false if the user is not
 //authenticated for a given access token
-func (a *AuthenticatedUsers) GetAutenticatedUser(accessToken string) (user User, ok bool) {
-	a.lock.Lock()
-	user, ok = a.users[accessToken]
-	a.lock.Unlock()
+func GetAutenticatedUser(accessToken string) (user User, ok bool) {
+	authenticatedUsers.lock.Lock()
+	user, ok = authenticatedUsers.users[accessToken]
+	authenticatedUsers.lock.Unlock()
 	return
 }
 

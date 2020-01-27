@@ -23,7 +23,6 @@ import (
 
 	"github.com/cuttle-ai/auth-service/config"
 	"github.com/cuttle-ai/auth-service/oauth"
-	"github.com/revel/revel"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 )
@@ -202,21 +201,21 @@ func (a *Agent) Info(ctx context.Context, appCtx *config.AppContext) (*config.Us
 	//setting the name
 	v, ok := ui[UserInfoMap.Name]
 	if !ok {
-		revel.AppLog.Error("Error while getting the user's name from the google user info api")
+		appCtx.Log.Error("Error while getting the user's name from the google user info api")
 		return nil, errors.New("Key not found " + UserInfoMap.Name)
 	}
 	info.Name = v.(string)
 	//setting the email
 	v, ok = ui[UserInfoMap.Email]
 	if !ok {
-		revel.AppLog.Error("Error while getting the user's email from the google user info api")
+		appCtx.Log.Error("Error while getting the user's email from the google user info api")
 		return nil, errors.New("Key not found " + UserInfoMap.Email)
 	}
 	info.Email = v.(string)
 	//setting the picture
 	v, ok = ui[UserInfoMap.Picture]
 	if !ok {
-		revel.AppLog.Error("Error while getting the user's pciture from the google user info api")
+		appCtx.Log.Error("Error while getting the user's pciture from the google user info api")
 		return nil, errors.New("Key not found " + UserInfoMap.Picture)
 	}
 	info.Picture = v.(string)

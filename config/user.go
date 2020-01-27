@@ -10,9 +10,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cuttle-ai/auth-service/log"
 	"github.com/google/uuid"
 	"github.com/hashicorp/consul/api"
-	"github.com/revel/revel"
 )
 
 /*
@@ -192,7 +192,7 @@ func InitAuthState() error {
 	client, err := api.NewClient(dConfig)
 	if err != nil {
 		//error while initializing the client
-		revel.AppLog.Error("Error while initializing the client for initing the auth state")
+		log.Error("Error while initializing the client for initing the auth state")
 		return err
 	}
 
@@ -200,7 +200,7 @@ func InitAuthState() error {
 	services, err := client.Agent().Services()
 	if err != nil {
 		//Error while getting all the services list
-		revel.AppLog.Error("Error while getting the list of services registered while fetching the authenticated users list")
+		log.Error("Error while getting the list of services registered while fetching the authenticated users list")
 		return err
 	}
 
@@ -220,7 +220,7 @@ func InitAuthState() error {
 	//creating a rpc client to do a rpc call
 	rClient, errC := rpc.DialHTTP("tcp", service.Address+":"+strconv.Itoa(service.Port))
 	if errC != nil {
-		revel.AppLog.Error("Error while getting the rpc client for fethcing the list of authenticated users")
+		log.Error("Error while getting the rpc client for fethcing the list of authenticated users")
 		return errC
 	}
 
@@ -233,7 +233,7 @@ func InitAuthState() error {
 	err = rClient.Call("RPCAuth.GetAllAutheticatedUsers", true, &authenticatedUsers.users)
 	if err != nil {
 		//Error while getting the list
-		revel.AppLog.Error("Error while fetching the list of authenticated users from auth service")
+		log.Error("Error while fetching the list of authenticated users from auth service")
 		return err
 	}
 

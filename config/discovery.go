@@ -28,6 +28,7 @@ func init() {
 	 * We will communicate with the consul client
 	 * Will prepare the service instance for the http and rpc service
 	 * Then will register the application with consul
+	 * We will register the rpc service with the consul agent
 	 */
 	//Registering the db with the discovery api
 	// Get a new client

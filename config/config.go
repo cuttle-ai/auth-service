@@ -129,13 +129,13 @@ func init() {
 	//rpc port
 	if len(os.Getenv("RPC_PORT")) != 0 {
 		//Assign the default port as 9090
-		Port = os.Getenv("RPC_PORT")
+		RPCPort = os.Getenv("RPC_PORT")
 		ip, err := strconv.Atoi(Port)
 		if err != nil {
 			//error whoile converting the port to integer
 			log.Fatal("Error while converting the port to integer", err.Error())
 		}
-		IntPort = ip
+		RPCIntPort = ip
 	}
 
 	//response timeout

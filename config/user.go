@@ -207,7 +207,7 @@ func InitAuthState() error {
 	//iterating through the services to find the list of services
 	var service *api.AgentService
 	for _, v := range services {
-		if _, ok := v.Meta["RPCService"]; ok && v.ID == "Brain-Auth-Service-RPC" {
+		if _, ok := v.Meta["RPCService"]; ok && v.ID == AuthServiceRPCID {
 			service = v
 		}
 	}
@@ -230,7 +230,7 @@ func InitAuthState() error {
 	}()
 
 	//making the rpc call
-	err = rClient.Call("RPCAuth.GetAllAutheticatedUsers", true, &authenticatedUsers)
+	err = rClient.Call("RPCAuth.GetAllAutheticatedUsers", true, &authenticatedUsers.users)
 	if err != nil {
 		//Error while getting the list
 		revel.AppLog.Error("Error while fetching the list of authenticated users from auth service")

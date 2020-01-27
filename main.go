@@ -54,6 +54,10 @@ func main() {
 		log.Info("Starting the server at :" + config.Port)
 		log.Error(s.ListenAndServe())
 	}()
+	go func() {
+		log.Info("Starting the rpc service at :" + config.RPCPort)
+		config.StartRPC()
+	}()
 
 	//listening for syscalls
 	var gracefulStop = make(chan os.Signal, 1)

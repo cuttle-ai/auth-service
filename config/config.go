@@ -23,6 +23,10 @@ var (
 	Port = "8080"
 	//IntPort is the port converted into integer
 	IntPort = 8080
+	//RPCPort in which the application's rpc server is being served
+	RPCPort = "9090"
+	//RPCIntPort is the rpc port converted into integer
+	RPCIntPort = 9090
 	//ResponseTimeout of the api to respond in milliseconds
 	ResponseTimeout = time.Duration(12000 * time.Millisecond)
 	//RequestRTimeout of the api request body read timeout in milliseconds
@@ -102,6 +106,7 @@ func checkError(err error) {
 func init() {
 	/*
 	 * We will init the port
+	 * We will init the rpc port
 	 * We will init the request timeout
 	 * We will init the request body read timeout
 	 * We will init the request body write timeout
@@ -113,6 +118,18 @@ func init() {
 	if len(os.Getenv("PORT")) != 0 {
 		//Assign the default port as 9090
 		Port = os.Getenv("PORT")
+		ip, err := strconv.Atoi(Port)
+		if err != nil {
+			//error whoile converting the port to integer
+			log.Fatal("Error while converting the port to integer", err.Error())
+		}
+		IntPort = ip
+	}
+
+	//rpc port
+	if len(os.Getenv("RPC_PORT")) != 0 {
+		//Assign the default port as 9090
+		Port = os.Getenv("RPC_PORT")
 		ip, err := strconv.Atoi(Port)
 		if err != nil {
 			//error whoile converting the port to integer

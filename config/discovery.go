@@ -6,6 +6,9 @@ package config
 
 import (
 	"log"
+	"net"
+	"net/http"
+	"net/rpc"
 
 	"github.com/hashicorp/consul/api"
 )
@@ -16,6 +19,9 @@ import (
 
 //AuthServiceID is the auth service id to be used with the discovery service
 var AuthServiceID = "Brain-Auth-Service"
+
+//AuthServiceRPCID is the rpc auth service id tpo be used with the discovery service
+var AuthServiceRPCID = "Brain-Auth-Service-RPC"
 
 func init() {
 	/*
@@ -40,15 +46,47 @@ func init() {
 	appInstance := &api.AgentServiceRegistration{
 		Name: AuthServiceID,
 		Port: IntPort,
-		Tags: []string{"Go", AuthServiceID},
+		Tags: []string{AuthServiceID},
 	}
 
 	//registering the service with the agent
-	log.Println("Going to register with the discovery service")
+	log.Println("Going to register the web service with the discovery service")
 	err = client.Agent().ServiceRegister(appInstance)
 	if err != nil {
-		log.Fatal("Error while registering with the discovery agent", err.Error())
+		log.Fatal("Error while registering the web service with the discovery agent", err.Error())
+	}
+
+	//service instance for rpc service
+	rpcInstance := &api.AgentServiceRegistration{
+		Name: AuthServiceRPCID,
+		Port: RPCIntPort,
+		Tags: []string{AuthServiceRPCID},
+		Meta: map[string]string{"RPCService": "yes"},
+	}
+	log.Println("Going to register the rpc service with the discovery service")
+	err = client.Agent().ServiceRegister(rpcInstance)
+	if err != nil {
+		log.Fatal("Error while registering the rpc service with the discovery agent", err.Error())
 	}
 
 	log.Println("Successfully registered with the discovery service")
+}
+
+//StartRPC service will start the rpc service. It helps the services to communicate between each other
+func StartRPC() {
+	/*
+	 * Will register the user auth rpc with rpc package
+	 * We will listen to the http with rpc of auth module
+	 * Then we will start listening to the rpc port
+	 */
+	//Registering the auth model with the rpc package
+	rpc.Register(new(RPCAuth))
+
+	//registering the handler with http
+	rpc.HandleHTTP()
+	l, e := net.Listen("tcp", ":"+RPCPort)
+	if e != nil {
+		log.Fatal("Error while listening to the rpc port", e.Error())
+	}
+	go http.Serve(l, nil)
 }

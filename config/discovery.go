@@ -45,9 +45,10 @@ func init() {
 	//service instances for the http service
 	log.Println("Connected with discovery service")
 	appInstance := &api.AgentServiceRegistration{
-		Name: AuthServiceID,
-		Port: IntPort,
-		Tags: []string{AuthServiceID},
+		Name:    AuthServiceID,
+		Port:    IntPort,
+		Address: ServiceDomain,
+		Tags:    []string{AuthServiceID},
 	}
 
 	//registering the service with the agent
@@ -59,10 +60,11 @@ func init() {
 
 	//service instance for rpc service
 	rpcInstance := &api.AgentServiceRegistration{
-		Name: AuthServiceRPCID,
-		Port: RPCIntPort,
-		Tags: []string{AuthServiceRPCID},
-		Meta: map[string]string{"RPCService": "yes"},
+		Name:    AuthServiceRPCID,
+		Port:    RPCIntPort,
+		Address: ServiceDomain,
+		Tags:    []string{AuthServiceRPCID},
+		Meta:    map[string]string{"RPCService": "yes"},
 	}
 	log.Println("Going to register the rpc service with the discovery service")
 	err = client.Agent().ServiceRegister(rpcInstance)

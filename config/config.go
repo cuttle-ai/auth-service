@@ -43,6 +43,8 @@ var (
 	DiscoveryURL = "127.0.0.1:8500"
 	//DiscoveryToken is the token to communicate with discovery service
 	DiscoveryToken = ""
+	//ServiceDomain is the url on which the service will be available across the platform
+	ServiceDomain = "127.0.0.1"
 )
 
 //SkipVault will skip the vault initialization if set true
@@ -113,6 +115,9 @@ func init() {
 	 * We will init the max no. of requests
 	 * We will init the request cleanup check
 	 * We will init the frontend url
+	 * We will init the discovery url
+	 * We will init the discovery service token
+	 * We will init the service domain
 	 */
 	//port
 	if len(os.Getenv("PORT")) != 0 {
@@ -130,7 +135,7 @@ func init() {
 	if len(os.Getenv("RPC_PORT")) != 0 {
 		//Assign the default port as 9090
 		RPCPort = os.Getenv("RPC_PORT")
-		ip, err := strconv.Atoi(Port)
+		ip, err := strconv.Atoi(RPCPort)
 		if err != nil {
 			//error whoile converting the port to integer
 			log.Fatal("Error while converting the port to integer", err.Error())
@@ -194,6 +199,11 @@ func init() {
 	}
 	if len(DiscoveryToken) == 0 {
 		log.Fatal("Token for discovery service is missing. Can't start the application without it")
+	}
+
+	//service domain
+	if len(os.Getenv("SERVICE_DOMAIN")) != 0 {
+		ServiceDomain = os.Getenv("SERVICE_DOMAIN")
 	}
 }
 

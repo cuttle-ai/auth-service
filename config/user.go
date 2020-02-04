@@ -5,6 +5,7 @@
 package config
 
 import (
+	"log"
 	"net/rpc"
 	"strconv"
 	"sync"
@@ -62,6 +63,13 @@ func GetAutenticatedUser(accessToken string) (user User, ok bool) {
 	return
 }
 
+//SetAuthenticatedUsers sets the authenticated users in the system
+func (a *AuthenticatedUsers) SetAuthenticatedUsers(users map[string]User) {
+	a.lock.Lock()
+	a.users = users
+	a.lock.Unlock()
+}
+
 //SetAuthenticatedUser will set a user as an authenticated user
 func (a *AuthenticatedUsers) SetAuthenticatedUser(user User) {
 	a.lock.Lock()
@@ -81,6 +89,7 @@ type RPCAuth struct{}
 
 //Authenticate will inform the service that the provided user is authenticated
 func (r *RPCAuth) Authenticate(u User, ok *bool) error {
+	log.Println("user authenticated", u.Email)
 	authenticatedUsers.SetAuthenticatedUser(u)
 	*ok = true
 	return nil
@@ -88,6 +97,7 @@ func (r *RPCAuth) Authenticate(u User, ok *bool) error {
 
 //Unauthenticate will invalide the user auth with the given access token
 func (r *RPCAuth) Unauthenticate(u User, ok *bool) error {
+	log.Println("user logged out", u.Email)
 	authenticatedUsers.DeleteAuthenticatedUser(u)
 	*ok = true
 	return nil
@@ -100,6 +110,7 @@ func (r *RPCAuth) GetAllAutheticatedUsers(ok bool, users *map[string]User) error
 	 * and addd each one to the result list
 	 */
 	*users = authenticatedUsers.users
+	log.Println("gave the authenticated users list", len(authenticatedUsers.users))
 	return nil
 }
 
@@ -112,6 +123,11 @@ func (u User) InformAuth(appCtx AppContext, loggedIn bool) {
 	 */
 	//Registering the db with the discovery api
 	// Get a new client
+	if loggedIn {
+		authenticatedUsers.SetAuthenticatedUser(u)
+	} else {
+		authenticatedUsers.DeleteAuthenticatedUser(u)
+	}
 	dConfig := api.DefaultConfig()
 	dConfig.Address = DiscoveryURL
 	dConfig.Token = DiscoveryToken
@@ -131,7 +147,8 @@ func (u User) InformAuth(appCtx AppContext, loggedIn bool) {
 
 	//going to use rpc call to authenticate the user
 	for _, v := range services {
-		if _, ok := v.Meta["RPCService"]; ok && v.ID != AuthServiceID {
+		if _, ok := v.Meta["RPCService"]; ok && v.ID != AuthServiceRPCID {
+			appCtx.Log.Info("Informing auth to", v.ID)
 			u.rpcAuth(appCtx, v, loggedIn)
 		}
 	}
@@ -228,13 +245,17 @@ func InitAuthState(l Logger) error {
 		rClient.Close()
 	}()
 
+	users := map[string]User{}
 	//making the rpc call
-	err = rClient.Call("RPCAuth.GetAllAutheticatedUsers", true, &authenticatedUsers.users)
+	err = rClient.Call("RPCAuth.GetAllAutheticatedUsers", true, &users)
 	if err != nil {
 		//Error while getting the list
 		l.Error("Error while fetching the list of authenticated users from auth service")
 		return err
 	}
+
+	l.Info("Got all the autneticated users in the system - ", len(users))
+	authenticatedUsers.SetAuthenticatedUsers(users)
 
 	return nil
 }

@@ -72,7 +72,8 @@ func ExampleAddRoutes() {
 func ExampleHandlerFunc() {
 	//Example for creating a simple handler function
 	f := func(ctx context.Context, res http.ResponseWriter, req *http.Request) {
-		response.Write(res, map[string]string{
+		appCtx := ctx.Value(routes.AppContextKey).(*config.AppContext)
+		response.Write(appCtx, res, map[string]string{
 			"Message": "hi",
 		})
 	}
@@ -86,6 +87,7 @@ func ExampleHandlerFunc() {
 func ExampleHandlerFunc_context() {
 	//Example for creating a simple handler function with context
 	f := func(ctx context.Context, res http.ResponseWriter, req *http.Request) {
+		appCtx := ctx.Value(routes.AppContextKey).(*config.AppContext)
 
 		//suppose there is a chan through a concurrent action happens
 		tm := make(chan int)
@@ -104,7 +106,7 @@ func ExampleHandlerFunc_context() {
 		select {
 		case <-tm:
 			//we get the response
-			response.Write(res, map[string]string{
+			response.Write(appCtx, res, map[string]string{
 				"Message": "hi",
 			})
 		case <-ctx.Done():

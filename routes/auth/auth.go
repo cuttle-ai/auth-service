@@ -95,13 +95,14 @@ func GoogleAuth(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	//will save the session
 	appCtx.Session.Authenticated = true
 	appCtx.Session.User.Email = info.Email
+	appCtx.Session.User.AccessToken = appCtx.Session.ID
 	go routes.SendRequest(routes.AppContextRequestChan, routes.AppContextRequest{
 		Session: appCtx.Session,
 		Type:    routes.SetSession,
 	})
 
 	//informing the user logged in info to all the applications
-	appCtx.Session.User.InformAuth(*appCtx, true)
+	go appCtx.Session.User.InformAuth(*appCtx, true)
 	http.SetCookie(w, &http.Cookie{
 		Name:    config.AuthHeaderKey,
 		Value:   appCtx.Session.ID,

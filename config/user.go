@@ -9,10 +9,10 @@ import (
 	"net/rpc"
 	"strconv"
 	"sync"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/hashicorp/consul/api"
+	"github.com/jinzhu/gorm"
 )
 
 /*
@@ -21,6 +21,8 @@ import (
 
 //User is used by the application to authenticate the users
 type User struct {
+	//ID is the of the user
+	ID uint
 	//UID is the unique id of the user
 	UID uuid.UUID
 	//AccessToken is the token with which the user is authenticated
@@ -89,7 +91,7 @@ type RPCAuth struct{}
 
 //Authenticate will inform the service that the provided user is authenticated
 func (r *RPCAuth) Authenticate(u User, ok *bool) error {
-	log.Println("user authenticated", u.Email)
+	log.Println("user authenticated", u.ID)
 	authenticatedUsers.SetAuthenticatedUser(u)
 	*ok = true
 	return nil
@@ -97,7 +99,7 @@ func (r *RPCAuth) Authenticate(u User, ok *bool) error {
 
 //Unauthenticate will invalide the user auth with the given access token
 func (r *RPCAuth) Unauthenticate(u User, ok *bool) error {
-	log.Println("user logged out", u.Email)
+	log.Println("user logged out", u.ID)
 	authenticatedUsers.DeleteAuthenticatedUser(u)
 	*ok = true
 	return nil
@@ -262,6 +264,7 @@ func InitAuthState(l Logger) error {
 
 //UserInfo is the model used for storing the profile info of the user
 type UserInfo struct {
+	gorm.Model
 	//Email of the user
 	Email string `db:"email"`
 	//Name of the user
@@ -272,10 +275,6 @@ type UserInfo struct {
 	Registered bool `db:"registered"`
 	//Subscribed indicates that the user is subscribed to the platform newsletter
 	Subscribed bool `db:"subscribed"`
-	//LastSeen is the last activity by the user
-	LastSeen time.Time `db:"last_seen"`
-	//LastSynced is the last time the profile was updated from the oauth agent
-	LastSynced time.Time `db:"last_synced"`
 }
 
 //Get returns the userinfo model from the database
@@ -297,10 +296,8 @@ func (u UserInfo) Insert(ctx AppContext) error {
 //Update updates the userinfo model based on the email
 func (u UserInfo) Update(ctx AppContext) error {
 	return ctx.Db.Model(&u).Where("email = ?", u.Email).Updates(map[string]interface{}{
-		"name":        u.Name,
-		"picture":     u.Picture,
-		"registered":  u.Registered,
-		"last_seen":   u.LastSeen,
-		"last_synced": u.LastSynced,
+		"name":       u.Name,
+		"picture":    u.Picture,
+		"registered": u.Registered,
 	}).Error
 }

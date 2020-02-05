@@ -92,10 +92,22 @@ func GoogleAuth(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	//since we have a valid info, we will get the info from db
+	//if the info is empty, we have to update the db with new info
+	//if info is not empty, except the registered info we will update the existing info in db
+	i := (*info).Get(*appCtx)
+	if i == nil {
+		(*info).Insert(*appCtx)
+	} else {
+		info.Registered = i.Registered
+		(*info).Update(*appCtx)
+	}
+
 	//will save the session
 	appCtx.Session.Authenticated = true
-	appCtx.Session.User.Email = info.Email
+	appCtx.Session.User.Email = i.Email
 	appCtx.Session.User.AccessToken = appCtx.Session.ID
+	appCtx.Session.User.ID = i.ID
 	go routes.SendRequest(routes.AppContextRequestChan, routes.AppContextRequest{
 		Session: appCtx.Session,
 		Type:    routes.SetSession,
@@ -110,17 +122,6 @@ func GoogleAuth(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 		Domain:  strings.Split(config.FrontendURL, ":")[0],
 		Path:    "/",
 	})
-
-	//since we have a valid info, we will get the info from db
-	//if the info is empty, we have to update the db with new info
-	//if info is not empty, except the registered info we will update the existing info in db
-	i := (*info).Get(*appCtx)
-	if i == nil {
-		(*info).Insert(*appCtx)
-	} else {
-		info.Registered = i.Registered
-		(*info).Update(*appCtx)
-	}
 
 	//will rediect to the index page
 	response.Write(appCtx, w, appCtx.Session)

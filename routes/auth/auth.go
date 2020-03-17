@@ -108,6 +108,7 @@ func GoogleAuth(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	appCtx.Session.User.Email = i.Email
 	appCtx.Session.User.AccessToken = appCtx.Session.ID
 	appCtx.Session.User.ID = i.ID
+	appCtx.Session.User.UserType = i.UserType
 	go routes.SendRequest(routes.AppContextRequestChan, routes.AppContextRequest{
 		Session: appCtx.Session,
 		Type:    routes.SetSession,

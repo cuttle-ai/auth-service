@@ -19,6 +19,17 @@ import (
  * This file contains the user model and its defnitions
  */
 
+const (
+	//NormalUser is a normal user in the system
+	NormalUser = "NormalUser"
+	//ManagerUser is a user with managerial previlege
+	ManagerUser = "ManagerUser"
+	//AdminUser has the admin access in the system
+	AdminUser = "AdminUser"
+	//SuperAdmin has the super admin access in the system
+	SuperAdmin = "SuperAdmin"
+)
+
 //User is used by the application to authenticate the users
 type User struct {
 	//ID is the of the user
@@ -31,6 +42,8 @@ type User struct {
 	AuthAgent string
 	//Email is the name of the user
 	Email string
+	//UserType is the type of user like NormalUser/Manager/Admin/SuperAdmin
+	UserType string
 }
 
 var users = make(map[string]*User)
@@ -275,6 +288,8 @@ type UserInfo struct {
 	Registered bool `db:"registered"`
 	//Subscribed indicates that the user is subscribed to the platform newsletter
 	Subscribed bool `db:"subscribed"`
+	//UserType is the type of user like NormalUser/Manager/Admin/SuperAdmin
+	UserType string
 }
 
 //Get returns the userinfo model from the database

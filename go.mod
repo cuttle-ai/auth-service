@@ -2,8 +2,10 @@ module github.com/cuttle-ai/auth-service
 
 go 1.13
 
+replace github.com/cuttle-ai/configs => ../configs/
+
 require (
-	github.com/cuttle-ai/configs v0.0.0-20190824112953-7860fdfd0dae
+	github.com/cuttle-ai/configs v0.0.0-00010101000000-000000000000
 	github.com/google/uuid v1.1.1
 	github.com/hashicorp/consul/api v1.2.0
 	github.com/inconshreveable/log15 v0.0.0-20180818164646-67afb5ed74ec // indirect

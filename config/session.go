@@ -8,7 +8,7 @@ package config
 
 //Session denotes an existing user session
 type Session struct {
-	//ID is the id of te session
+	//ID is the id of the session
 	ID string
 	//Authenticated denotes whether the session is authenticated or not
 	Authenticated bool

@@ -37,6 +37,8 @@ type Route struct {
 	ForAdmin bool
 	//ParseForm flag indicates to parse the form before handler is invoked
 	ParseForm bool
+	//Authenticated flag indicates that the user need to authenticated to use the api
+	Authenticated bool
 }
 
 type key string
@@ -115,6 +117,13 @@ func (r Route) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		//reject the request
 		log.Error("We have exhausted the request limits")
 		response.WriteError(resCtx.AppContext, res, response.Error{Err: "We have exhuasted the server request limits. Please try after some time."}, http.StatusTooManyRequests)
+		_, cancel := context.WithCancel(ctx)
+		cancel()
+		return
+	}
+
+	if r.Authenticated && !resCtx.AppContext.Session.Authenticated {
+		response.WriteError(resCtx.AppContext, res, response.Error{Err: "You have to be logged in to access this API."}, http.StatusForbidden)
 		_, cancel := context.WithCancel(ctx)
 		cancel()
 		return

@@ -61,7 +61,7 @@ type App struct {
 	UID uuid.UUID
 	//AccessToken is the token with which the user is authenticated
 	AccessToken string
-	//Email is the email of the user who registered the app
+	//Email associated with the app
 	Email string
 	//Description for the App
 	Description string
@@ -475,18 +475,19 @@ func GetAllApps(ctx AppContext) (results []AppInfo) {
 
 //Insert inserts the user info record to the database
 func (a *AppInfo) Insert(ctx AppContext) error {
-	return ctx.Db.Create(&a).Error
+	return ctx.Db.Create(a).Error
 }
 
 //Delete deletes an app's info record in the database
 func (a *AppInfo) Delete(ctx AppContext) error {
-	return ctx.Db.Delete(&a).Error
+	return ctx.Db.Delete(a).Error
 }
 
 //Update updates the userinfo model based on the uid -- name and description
 func (a *AppInfo) Update(ctx AppContext) error {
-	return ctx.Db.Model(&a).Where("uid = ? and user_id = ?", a.UID, a.UserID).Updates(map[string]interface{}{
+	return ctx.Db.Model(a).Where("uid = ? and user_id = ?", a.UID, a.UserID).Updates(map[string]interface{}{
 		"name":        a.Name,
 		"description": a.Description,
+		"email":       a.Email,
 	}).Error
 }

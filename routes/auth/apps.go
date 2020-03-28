@@ -34,7 +34,7 @@ func GetApps(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.Write(appCtx, w, apps)
+	response.Write(appCtx, w, response.Message{Message: "fetched the list", Data: apps})
 }
 
 //CreateApp api will create an app registered with the platform
@@ -81,10 +81,10 @@ func CreateApp(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	go user.InformAuth(*appCtx, true)
 
 	//we will write the response
-	response.Write(appCtx, w, aI.ToApp())
+	response.Write(appCtx, w, response.Message{Message: "created the app", Data: aI.ToApp()})
 }
 
-//UpdateApp api will update an app registered with the platform. Only name and description are updated
+//UpdateApp api will update an app registered with the platform. Only name, email and description are updated
 func UpdateApp(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	/*
 	 * First we will get the app context
@@ -123,7 +123,7 @@ func UpdateApp(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 
 	//we will write the response
 	appCtx.Log.Info("updated the app for user - ", a.UserID, "with id", a.ID)
-	response.Write(appCtx, w, aI.ToApp())
+	response.Write(appCtx, w, response.Message{Message: "updated the app", Data: aI.ToApp()})
 }
 
 //DeleteApp api will delete an app registered with the platform.
@@ -161,8 +161,10 @@ func DeleteApp(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	}
 
 	//we will write the response
-	appCtx.Log.Info("delete the app for user - ", a.UserID, "with id", a.ID)
-	response.Write(appCtx, w, nil)
+	appCtx.Log.Info("delete the app for user - ", a.UserID, "with id", a.ID, "going to update the same across the platform")
+	user := aI.ToApp().ToUser()
+	go user.InformAuth(*appCtx, false)
+	response.Write(appCtx, w, response.Message{Message: "deleted the app", Data: nil})
 }
 
 //GetAllApps api will return the list of all apps registered in the platform. This is intented for admin use
@@ -180,30 +182,35 @@ func GetAllApps(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 func init() {
 	routes.AddRoutes(
 		routes.Route{
-			Version:     "v1",
-			Pattern:     "/auth/apps",
-			HandlerFunc: GetApps,
+			Version:       "v1",
+			Pattern:       "/auth/apps",
+			HandlerFunc:   GetApps,
+			Authenticated: true,
 		},
 		routes.Route{
-			Version:     "v1",
-			Pattern:     "/auth/apps/create",
-			HandlerFunc: CreateApp,
+			Version:       "v1",
+			Pattern:       "/auth/apps/create",
+			HandlerFunc:   CreateApp,
+			Authenticated: true,
 		},
 		routes.Route{
-			Version:     "v1",
-			Pattern:     "/auth/apps/update",
-			HandlerFunc: UpdateApp,
+			Version:       "v1",
+			Pattern:       "/auth/apps/update",
+			HandlerFunc:   UpdateApp,
+			Authenticated: true,
 		},
 		routes.Route{
-			Version:     "v1",
-			Pattern:     "/auth/apps/delete",
-			HandlerFunc: DeleteApp,
+			Version:       "v1",
+			Pattern:       "/auth/apps/delete",
+			HandlerFunc:   DeleteApp,
+			Authenticated: true,
 		},
 		routes.Route{
-			Version:     "v1",
-			Pattern:     "/auth/admin/apps",
-			HandlerFunc: GetAllApps,
-			ForAdmin:    true,
+			Version:       "v1",
+			Pattern:       "/auth/admin/apps",
+			HandlerFunc:   GetAllApps,
+			ForAdmin:      true,
+			Authenticated: true,
 		},
 	)
 }

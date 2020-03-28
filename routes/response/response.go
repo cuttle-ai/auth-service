@@ -23,6 +23,14 @@ type Error struct {
 	Err string `json:"error"`
 }
 
+//Message is the message to be given for successfull response
+type Message struct {
+	//Message associated with
+	Message string
+	//Data is payload
+	Data interface{}
+}
+
 //WriteError will write to the error response to the response writer
 func WriteError(appCtx *config.AppContext, res http.ResponseWriter, err Error, code int) {
 	/*

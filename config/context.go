@@ -83,14 +83,28 @@ func init() {
 	/*
 	 * We will initialize the context
 	 * We will connect to the database
+	 * Then we will get all the authenticated apps from the database
+	 * Then load them up into the authentication map
 	 */
+	//initializing the context
 	rootAppContext = &AppContext{}
 
+	//connecting the database
 	log.Println("Going to connect with Database")
 	err := rootAppContext.ConnectToDB()
 	if err != nil {
 		log.Fatal("Error while creating the root app context. Connecting to DB failed. ", err)
 	}
+
+	//getting all the authenticated apps from the database
+	apps := GetAllApps(*rootAppContext)
+	appsMap := map[string]App{}
+	for _, v := range apps {
+		appsMap[v.AccessToken] = v.ToApp()
+	}
+
+	//storing the authenticated apps in the authentication map
+	authenticatedUsers.apps = appsMap
 }
 
 //NewAppContext returns an initlized app context
@@ -116,5 +130,6 @@ func (a *AppContext) ConnectToDB() error {
 		a.Db = d
 	}
 	a.Db.AutoMigrate(&UserInfo{})
+	a.Db.AutoMigrate(&AppInfo{})
 	return err
 }

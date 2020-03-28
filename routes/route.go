@@ -33,6 +33,10 @@ type Route struct {
 	Pattern string
 	//HandlerFunc is the handler func of the route
 	HandlerFunc HandlerFunc
+	//ForAdmin flag indicates that the route is allowed only for the admin
+	ForAdmin bool
+	//ParseForm flag indicates to parse the form before handler is invoked
+	ParseForm bool
 }
 
 type key string
@@ -77,14 +81,16 @@ func (r Route) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
 
 	//parsing the form
-	err := req.ParseForm()
-	if err != nil {
-		//error while parsing the form
-		log.Error("Error while parsing the request form", err)
-		response.WriteError(nil, res, response.Error{Err: "Couldn't parse the request form"}, http.StatusUnprocessableEntity)
-		_, cancel := context.WithCancel(ctx)
-		cancel()
-		return
+	if r.ParseForm {
+		err := req.ParseForm()
+		if err != nil {
+			//error while parsing the form
+			log.Error("Error while parsing the request form", err)
+			response.WriteError(nil, res, response.Error{Err: "Couldn't parse the request form"}, http.StatusUnprocessableEntity)
+			_, cancel := context.WithCancel(ctx)
+			cancel()
+			return
+		}
 	}
 
 	//getting the auth token from the header
@@ -109,6 +115,13 @@ func (r Route) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		//reject the request
 		log.Error("We have exhausted the request limits")
 		response.WriteError(resCtx.AppContext, res, response.Error{Err: "We have exhuasted the server request limits. Please try after some time."}, http.StatusTooManyRequests)
+		_, cancel := context.WithCancel(ctx)
+		cancel()
+		return
+	}
+
+	if r.ForAdmin && resCtx.AppContext.Session.User.UserType != config.AdminUser {
+		response.WriteError(resCtx.AppContext, res, response.Error{Err: "You don't have the previlege to access this API."}, http.StatusForbidden)
 		_, cancel := context.WithCancel(ctx)
 		cancel()
 		return

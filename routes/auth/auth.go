@@ -239,6 +239,7 @@ func init() {
 			Version:     "v1",
 			Pattern:     "/auth/google",
 			HandlerFunc: GoogleAuth,
+			ParseForm:   true,
 		},
 		routes.Route{
 			Version:     "v1",

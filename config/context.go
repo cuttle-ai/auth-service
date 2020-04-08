@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/google/uuid"
 	"github.com/jinzhu/gorm"
 )
 
@@ -28,6 +29,9 @@ const (
 	//EnabledDB is the environment variable stating whether the db is enabled or not
 	EnabledDB = "ENABLE_DB"
 )
+
+//MasterAppDetails details has the master app details
+var MasterAppDetails *AppInfo
 
 //DbConfig is the database configuration to connect to it
 type DbConfig struct {
@@ -105,6 +109,66 @@ func init() {
 
 	//storing the authenticated apps in the authentication map
 	authenticatedUsers.apps = appsMap
+}
+
+//AddAsSuperAdmin will add the given user as a super admin
+func AddAsSuperAdmin(ctx *AppContext, userID uint, email string) error {
+	/*
+	 * We will add the user as super admin
+	 * Then will create the master token for the same
+	 * Then we will inform the auth
+	 */
+	iu := UserInfo{Model: gorm.Model{ID: userID}}
+	err := iu.AddAsSuperAdmin(*ctx)
+	if err != nil {
+		return err
+	}
+
+	err = initializeAppToken(ctx, userID, email)
+	if err != nil {
+		return err
+	}
+
+	user := MasterAppDetails.ToApp().ToUser()
+	go user.InformAuth(*ctx, true)
+
+	return nil
+}
+
+//initializeAppToken will initialize the master app token
+func initializeAppToken(ctx *AppContext, userID uint, email string) error {
+	/*
+	 * We can get the master app from db
+	 * If not created, we will create one
+	 * Then store the token in the config
+	 */
+	ap, err := GetMasterApp(*ctx)
+	if err == nil {
+		//app is available
+		ap = MasterAppDetails
+		return nil
+	}
+
+	//not created. Need to create one
+	//this adds the first user came to the platform as the master user. Generally it should be the admin
+	ap = &AppInfo{
+		UserID:      userID,
+		UID:         uuid.New(),
+		Email:       email,
+		AccessToken: uuid.New().String(),
+		Description: "Master Cuttle App",
+		Name:        "Cuttle Master",
+		IsMasterApp: true,
+	}
+	err = ap.Insert(*ctx)
+	if err != nil {
+		//error while inserting the master app details
+		return err
+	}
+
+	//putting in the details
+	MasterAppDetails = ap
+	return nil
 }
 
 //NewAppContext returns an initlized app context

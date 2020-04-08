@@ -10,6 +10,7 @@ require (
 	github.com/hashicorp/consul/api v1.2.0
 	github.com/inconshreveable/log15 v0.0.0-20180818164646-67afb5ed74ec // indirect
 	github.com/jinzhu/gorm v1.9.11
+	github.com/twinj/uuid v1.0.0
 	github.com/xeonx/timeago v1.0.0-rc4 // indirect
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 	gopkg.in/fsnotify/fsnotify.v1 v1.4.7 // indirect

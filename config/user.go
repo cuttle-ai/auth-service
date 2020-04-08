@@ -28,8 +28,10 @@ const (
 	AdminUser = "AdminUser"
 	//SuperAdmin has the super admin access in the system
 	SuperAdmin = "SuperAdmin"
-	//RegisteredApp has teh previleges a registered app has
+	//RegisteredApp has the previleges a registered app has
 	RegisteredApp = "RegisteredApp"
+	//CuttleApp has all the previleges the platform itself
+	CuttleApp = "CuttleApp"
 )
 
 const (
@@ -69,6 +71,8 @@ type App struct {
 	Name string
 	//UserID is the id of the user who registered the app
 	UserID uint
+	//IsMasterApp indicates whether ther app is from cuttle platform
+	IsMasterApp bool
 }
 
 var users = make(map[string]*User)
@@ -109,6 +113,14 @@ func (a *AuthenticatedUsers) SetAuthenticatedUsers(users map[string]User) {
 	a.lock.Lock()
 	a.users = users
 	a.lock.Unlock()
+	for _, v := range users {
+		//if the user is cuttle app, then put the master app details as the user info
+		if v.UserType == CuttleApp {
+			MasterAppDetails = &AppInfo{
+				AccessToken: v.AccessToken,
+			}
+		}
+	}
 }
 
 //SetAuthenticatedUser will set a user as an authenticated user
@@ -259,7 +271,7 @@ func (u User) ToUserInfo() UserInfo {
 
 //ToUser converts an app to user
 func (a App) ToUser() User {
-	return User{
+	user := User{
 		ID:          a.UserID,
 		UID:         a.UID,
 		AccessToken: a.AccessToken,
@@ -267,6 +279,10 @@ func (a App) ToUser() User {
 		AuthAgent:   CUTTLE_AI,
 		UserType:    RegisteredApp,
 	}
+	if a.IsMasterApp {
+		user.UserType = CuttleApp
+	}
+	return user
 }
 
 //ToAppInfo converts the app to appinfo instance
@@ -279,6 +295,7 @@ func (a App) ToAppInfo() AppInfo {
 		Description: a.Description,
 		UserID:      a.UserID,
 		Name:        a.Name,
+		IsMasterApp: a.IsMasterApp,
 	}
 }
 
@@ -430,6 +447,13 @@ func (u *UserInfo) Update(ctx AppContext) error {
 	}).Error
 }
 
+//AddAsSuperAdmin updates the userinfo models user type as super admin
+func (u *UserInfo) AddAsSuperAdmin(ctx AppContext) error {
+	return ctx.Db.Model(&u).Where("id = ?", u.ID).Updates(map[string]interface{}{
+		"user_type": SuperAdmin,
+	}).Error
+}
+
 //GetApps will return the apps the user has access to
 func (u *UserInfo) GetApps(ctx AppContext) ([]AppInfo, error) {
 	apps := []AppInfo{}
@@ -452,6 +476,8 @@ type AppInfo struct {
 	Name string
 	//UserID of the user who registered the app
 	UserID uint
+	//IsMasterApp indicates the app is from cuttle platform itself
+	IsMasterApp bool
 }
 
 //ToApp converts the appInfo into app instance
@@ -464,6 +490,7 @@ func (a AppInfo) ToApp() App {
 		Description: a.Description,
 		Name:        a.Name,
 		UserID:      a.UserID,
+		IsMasterApp: a.IsMasterApp,
 	}
 }
 
@@ -471,6 +498,13 @@ func (a AppInfo) ToApp() App {
 func GetAllApps(ctx AppContext) (results []AppInfo) {
 	ctx.Db.Find(&results)
 	return
+}
+
+//GetMasterApp will return an error if couldn't find the mast app info
+func GetMasterApp(ctx AppContext) (*AppInfo, error) {
+	result := &AppInfo{}
+	err := ctx.Db.Where("is_master_app = ?", true).Find(result).Error
+	return result, err
 }
 
 //Insert inserts the user info record to the database

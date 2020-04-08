@@ -98,6 +98,13 @@ func GoogleAuth(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	i := (*info).Get(*appCtx)
 	if i == nil {
 		(*info).Insert(*appCtx)
+		if i.ID == 1 {
+			err = config.AddAsSuperAdmin(appCtx, i.ID, i.Email)
+			if err != nil {
+				//error while adding the user as super admin
+				appCtx.Log.Error("error shile adding the user as super admin ", i.ID, err.Error())
+			}
+		}
 	} else {
 		info.Registered = i.Registered
 		(*info).Update(*appCtx)

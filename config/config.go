@@ -109,6 +109,8 @@ func checkError(err error) {
 
 func init() {
 	/*
+	 * We will init the discovery url
+	 * We will init the discovery service token
 	 * We will init the is auth service environment
 	 * If not auth service we won't go forward
 	 * We will init the port
@@ -119,10 +121,22 @@ func init() {
 	 * We will init the max no. of requests
 	 * We will init the request cleanup check
 	 * We will init the frontend url
-	 * We will init the discovery url
-	 * We will init the discovery service token
 	 * We will init the service domain
 	 */
+
+	//discovery service url
+	if len(os.Getenv("DISCOVERY_URL")) != 0 {
+		DiscoveryURL = os.Getenv("DISCOVERY_URL")
+	}
+
+	//discovery service token
+	if len(os.Getenv("DISCOVERY_TOKEN")) != 0 {
+		DiscoveryToken = os.Getenv("DISCOVERY_TOKEN")
+	}
+	if len(DiscoveryToken) == 0 {
+		log.Fatal("Token for discovery service is missing. Can't start the application without it")
+	}
+
 	//initalizing the is auth service environment
 	if os.Getenv("IS_AUTH_SERVICE") == "true" {
 		IsAuthService = true
@@ -200,19 +214,6 @@ func init() {
 	//frontend url
 	if len(os.Getenv("FRONTEND_URL")) != 0 {
 		FrontendURL = os.Getenv("FRONTEND_URL")
-	}
-
-	//discovery service url
-	if len(os.Getenv("DISCOVERY_URL")) != 0 {
-		DiscoveryURL = os.Getenv("DISCOVERY_URL")
-	}
-
-	//discovery service token
-	if len(os.Getenv("DISCOVERY_TOKEN")) != 0 {
-		DiscoveryToken = os.Getenv("DISCOVERY_TOKEN")
-	}
-	if len(DiscoveryToken) == 0 {
-		log.Fatal("Token for discovery service is missing. Can't start the application without it")
 	}
 
 	//service domain

@@ -25,11 +25,17 @@ var AuthServiceRPCID = "Brain-Auth-Service-RPC"
 
 func init() {
 	/*
+	 * We will whether the service is auth service
 	 * We will communicate with the consul client
 	 * Will prepare the service instance for the http and rpc service
 	 * Then will register the application with consul
 	 * We will register the rpc service with the consul agent
 	 */
+	//checking whether the service is auth
+	if !IsAuthService {
+		return
+	}
+
 	//Registering the db with the discovery api
 	// Get a new client
 	log.Println("Going to register with the discovery service")

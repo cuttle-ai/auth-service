@@ -45,6 +45,8 @@ var (
 	DiscoveryToken = ""
 	//ServiceDomain is the url on which the service will be available across the platform
 	ServiceDomain = "127.0.0.1"
+	//IsAuthService to make sure that the configuration belongs to auth service. This will prevent cross initialization across services
+	IsAuthService = false
 )
 
 //SkipVault will skip the vault initialization if set true
@@ -107,6 +109,8 @@ func checkError(err error) {
 
 func init() {
 	/*
+	 * We will init the is auth service environment
+	 * If not auth service we won't go forward
 	 * We will init the port
 	 * We will init the rpc port
 	 * We will init the request timeout
@@ -119,6 +123,16 @@ func init() {
 	 * We will init the discovery service token
 	 * We will init the service domain
 	 */
+	//initalizing the is auth service environment
+	if os.Getenv("IS_AUTH_SERVICE") == "true" {
+		IsAuthService = true
+	}
+
+	//checking whether the service is auth
+	if !IsAuthService {
+		return
+	}
+
 	//port
 	if len(os.Getenv("PORT")) != 0 {
 		//Assign the default port as 9090

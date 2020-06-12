@@ -30,6 +30,8 @@ const (
 	DbPassword = "DB_PASSWORD"
 	//EnabledDB is the environment variable stating whether the db is enabled or not
 	EnabledDB = "ENABLE_DB"
+	//DevelopmentDatastoreUser is the username that has ssh access to the development datastore
+	DevelopmentDatastoreUser = "DEVELOPMENT_DATSTORE_USERID"
 )
 
 //MasterAppDetails details has the master app details
@@ -170,7 +172,7 @@ func initializeDatastore(ctx *AppContext, userID uint) error {
 		Group:         "development",
 		Datasets:      0,
 		DatastoreType: services.POSTGRES,
-		DataDirectory: os.Getenv(DbUsername) + "@" + os.Getenv(DbHost) + ":/home/",
+		DataDirectory: os.Getenv(DevelopmentDatastoreUser) + "@" + os.Getenv(DbHost) + ":/home/",
 	})
 	if err != nil {
 		//error while registering the development datastores with datastores service

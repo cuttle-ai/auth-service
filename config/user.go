@@ -128,6 +128,11 @@ func (a *AuthenticatedUsers) SetAuthenticatedUsers(users map[string]User) {
 func (a *AuthenticatedUsers) SetAuthenticatedUser(user User) {
 	a.lock.Lock()
 	a.users[user.AccessToken] = user
+	if user.UserType == CuttleApp {
+		MasterAppDetails = &AppInfo{
+			AccessToken: user.AccessToken,
+		}
+	}
 	a.lock.Unlock()
 }
 

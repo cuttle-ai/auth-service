@@ -35,8 +35,8 @@ const (
 )
 
 const (
-	//CUTTLE_AI for string as auth agent for registered apps
-	CUTTLE_AI = "CUTTLE.AI"
+	//CuttleAI for string as auth agent for registered apps
+	CuttleAI = "CUTTLE.AI"
 )
 
 //User is used by the application to authenticate the users
@@ -276,7 +276,7 @@ func (a App) ToUser() User {
 		UID:         a.UID,
 		AccessToken: a.AccessToken,
 		Email:       a.Email,
-		AuthAgent:   CUTTLE_AI,
+		AuthAgent:   CuttleAI,
 		UserType:    RegisteredApp,
 	}
 	if a.IsMasterApp {

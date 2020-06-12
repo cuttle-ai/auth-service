@@ -9,6 +9,7 @@ import (
 	"net/rpc"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/hashicorp/consul/api"
@@ -379,7 +380,16 @@ func InitAuthState(l Logger) error {
 	}
 
 	//creating a rpc client to do a rpc call
+	retryCount := 10
 	rClient, errC := rpc.DialHTTP("tcp", service.Address+":"+strconv.Itoa(service.Port))
+	for errC != nil && retryCount > 0 {
+		l.Error("Connecting to auth service failed", errC)
+		retryDur := time.Second * 10
+		l.Info("Retrying in", retryDur)
+		time.Sleep(retryDur)
+		retryCount--
+		rClient, errC = rpc.DialHTTP("tcp", service.Address+":"+strconv.Itoa(service.Port))
+	}
 	if errC != nil {
 		l.Error("Error while getting the rpc client for fethcing the list of authenticated users", service.Address+":"+strconv.Itoa(service.Port))
 		return errC

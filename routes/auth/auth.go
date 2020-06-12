@@ -97,7 +97,7 @@ func GoogleAuth(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	//if info is not empty, except the registered info we will update the existing info in db
 	i := (*info).Get(*appCtx)
 	if i == nil {
-		(*info).Insert(*appCtx)
+		info.Insert(*appCtx)
 		if info.ID == 1 {
 			err = config.AddAsSuperAdmin(appCtx, info.ID, info.Email)
 			if err != nil {
@@ -107,7 +107,7 @@ func GoogleAuth(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 		info.Registered = i.Registered
-		(*info).Update(*appCtx)
+		info.Update(*appCtx)
 	}
 
 	//will save the session

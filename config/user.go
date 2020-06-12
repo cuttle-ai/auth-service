@@ -444,8 +444,8 @@ func (u UserInfo) Get(ctx AppContext) (result *UserInfo) {
 }
 
 //Insert inserts the user info record to the database
-func (u UserInfo) Insert(ctx AppContext) error {
-	return ctx.Db.Create(&u).Error
+func (u *UserInfo) Insert(ctx AppContext) error {
+	return ctx.Db.Create(u).Error
 }
 
 //Update updates the userinfo model based on the email

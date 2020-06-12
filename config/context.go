@@ -9,6 +9,8 @@ import (
 	"log"
 	"os"
 
+	"github.com/cuttle-ai/db-toolkit/datastores/services"
+	"github.com/cuttle-ai/go-sdk/services/datastores"
 	"github.com/google/uuid"
 	"github.com/jinzhu/gorm"
 )
@@ -117,6 +119,7 @@ func AddAsSuperAdmin(ctx *AppContext, userID uint, email string) error {
 	 * We will add the user as super admin
 	 * Then will create the master token for the same
 	 * Then we will inform the auth
+	 * Then we will initialize the datastore
 	 */
 	iu := UserInfo{Model: gorm.Model{ID: userID}}
 	err := iu.AddAsSuperAdmin(*ctx)
@@ -130,8 +133,50 @@ func AddAsSuperAdmin(ctx *AppContext, userID uint, email string) error {
 	}
 
 	user := MasterAppDetails.ToApp().ToUser()
-	go user.InformAuth(*ctx, true)
+	user.InformAuth(*ctx, true)
 
+	err = initializeDatastore(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func initializeDatastore(ctx *AppContext, userID uint) error {
+	/*
+	 * If the environment is prod we will return
+	 * First we will create the data store in db
+	 * Then will register it with the datastore service
+	 */
+	if PRODUCTION != 0 {
+		return nil
+	}
+
+	initDatastoreName := "development-datastore"
+	ctx.Log.Info("creating the init datastore since in non-prod mode", initDatastoreName)
+	err := CreateInitDatastore(*ctx, initDatastoreName)
+	if err != nil {
+		ctx.Log.Error("error while creating the init datastore", initDatastoreName)
+		return err
+	}
+
+	_, err = datastores.CreateDatastore(ctx.Log, DiscoveryURL, DiscoveryToken, MasterAppDetails.AccessToken, services.Service{
+		URL:           os.Getenv(DbHost),
+		Port:          os.Getenv(DbPort),
+		Username:      os.Getenv(DbUsername),
+		Password:      os.Getenv(DbPassword),
+		Name:          initDatastoreName,
+		Group:         "development",
+		Datasets:      0,
+		DatastoreType: services.POSTGRES,
+		DataDirectory: os.Getenv(DbUsername) + "@" + os.Getenv(DbHost) + ":/home/",
+	})
+	if err != nil {
+		//error while registering the development datastores with datastores service
+		ctx.Log.Error("error while registering the development datastores with datastores service", initDatastoreName)
+		return err
+	}
 	return nil
 }
 

@@ -471,6 +471,11 @@ func (u *UserInfo) GetApps(ctx AppContext) ([]AppInfo, error) {
 	return apps, err
 }
 
+//CreateInitDatastore creates a datastore with the given name
+func CreateInitDatastore(ctx AppContext, name string) error {
+	return ctx.Db.Exec("create database \"" + name + "\"").Error
+}
+
 //AppInfo is to model storing the app info of applications registered with the system in database
 type AppInfo struct {
 	gorm.Model

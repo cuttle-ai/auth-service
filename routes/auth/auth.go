@@ -105,6 +105,7 @@ func GoogleAuth(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 				appCtx.Log.Error("error shile adding the user as super admin ", i.ID, err.Error())
 			}
 		}
+		i = info
 	} else {
 		info.Registered = i.Registered
 		info.Update(*appCtx)

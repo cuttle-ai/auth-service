@@ -9,6 +9,8 @@ import (
 	"log"
 	"os"
 
+	"github.com/cuttle-ai/brain/appctx"
+	bLog "github.com/cuttle-ai/brain/log"
 	"github.com/cuttle-ai/db-toolkit/datastores/services"
 	"github.com/cuttle-ai/go-sdk/services/datastores"
 	"github.com/google/uuid"
@@ -163,7 +165,7 @@ func initializeDatastore(ctx *AppContext, userID uint) error {
 		return err
 	}
 
-	_, err = datastores.CreateDatastore(ctx.Log, DiscoveryURL, DiscoveryToken, MasterAppDetails.AccessToken, services.Service{
+	_, err = datastores.CreateDatastore(appctx.WithAccessToken(ctx, MasterAppDetails.AccessToken), services.Service{
 		URL:           os.Getenv(DbHost),
 		Port:          os.Getenv(DbPort),
 		Username:      os.Getenv(DbUsername),
@@ -243,4 +245,24 @@ func (a *AppContext) ConnectToDB() error {
 	a.Db.AutoMigrate(&UserInfo{})
 	a.Db.AutoMigrate(&AppInfo{})
 	return err
+}
+
+//Logger returns the logger of the app context
+func (a AppContext) Logger() bLog.Log {
+	return a.Log
+}
+
+//AccessToken of the app
+func (a AppContext) AccessToken() string {
+	return a.Session.ID
+}
+
+//DiscoveryAddress of thedisocvery service
+func (a AppContext) DiscoveryAddress() string {
+	return DiscoveryURL
+}
+
+//DiscoveryToken of the discovery service
+func (a AppContext) DiscoveryToken() string {
+	return DiscoveryToken
 }

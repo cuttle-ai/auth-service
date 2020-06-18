@@ -14,6 +14,7 @@ replace github.com/cuttle-ai/go-sdk => ../go-sdk/
 
 require (
 	cloud.google.com/go v0.37.4 // indirect
+	github.com/cuttle-ai/brain v0.0.0-00010101000000-000000000000
 	github.com/cuttle-ai/configs v0.0.0-20190824112953-7860fdfd0dae
 	github.com/cuttle-ai/db-toolkit v0.0.0-00010101000000-000000000000
 	github.com/cuttle-ai/go-sdk v0.0.0-00010101000000-000000000000
